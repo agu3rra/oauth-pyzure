@@ -34,5 +34,5 @@ the claims in the token and error will be set to None.
 If any error occurs, it will be saved to the error
 string and claims will be set to None.
 """
-(claims, error) = oa.validate(jwt)
+(claims, error) = oa.get_claims(jwt)
 ```
