@@ -1,3 +1,4 @@
+import textwrap
 import pyjwt as jwt
 import requests
 
@@ -119,6 +120,11 @@ class OAuth():
                     break
         
         if x5c is None: # no matching certificate has been found.
-            pass
+            error = "Unable to find a valid x5c certificate for this key id."
+            raise SystemError(error)
 
         # Generate x509 certificate object
+        certificate_string = 'BEGIN PUBLIC KEY'.center(64, '-')+'\n'
+        certificate_string += '\n'.join(textwrap.wrap(x5c, 64))
+        certificate_string += '\n'+'END PUBLIC KEY'.center(64, '-')+'\n'
+        
