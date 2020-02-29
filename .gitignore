@@ -1,0 +1,22 @@
+# Virtualenv
+/.venv/
+
+# Regular Python bytecode file
+*.pyc
+__pycache__/
+
+# Optimized Python bytecode file
+*.pyo
+
+# pytest cache folder
+.*cache
+
+# Coverage files (./bin/coverage_report.py)
+.coverage
+covhtml/
+
+# Mac OS X Junk
+.DS_Store
+
+# VSCode settings file
+.vscode/
