@@ -21,7 +21,7 @@ a JSON Web Token
 jwt = oa.get_token(
     client_id='some_client_id',
     client_secret='some_client_secret_you_wont_commit_to_scm',
-    resource='app_id_you_wish_to_call'
+    scope='api://someappid/.default'
 )
 
 """
@@ -34,5 +34,5 @@ the claims in the token and error will be set to None.
 If any error occurs, it will be saved to the error
 string and claims will be set to None.
 """
-(claims, error) = oa.get_claims(jwt)
+(claims, error) = oa.get_claims(jwt, app_id)
 ```
