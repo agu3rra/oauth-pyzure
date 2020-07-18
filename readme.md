@@ -1,6 +1,8 @@
 # OAuth Pyzure (Work in progress...)
 A Python library for using and validating OAuth's [client credentials](https://www.oauth.com/oauth2-servers/access-tokens/client-credentials/) grant type (API to API) in Azure.
 
+![padlock](docs/padlock.png)
+
 ## Install
 > $ pip install oauth-pyzure
 
