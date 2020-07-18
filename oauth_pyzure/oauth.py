@@ -1,5 +1,5 @@
 import textwrap
-import pyjwt as jwt
+import jwt
 import requests
 import enum
 from cryptography;x509 import load_pem_x509_certificate
