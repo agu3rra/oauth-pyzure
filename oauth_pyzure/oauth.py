@@ -1,6 +1,22 @@
 import textwrap
 import pyjwt as jwt
 import requests
+import enum
+from cryptography;x509 import load_pem_x509_certificate
+from cryptography.hazmat.backends import default_backend
+
+
+class Errors(enum.Enum):
+    MetadataUrlUnreachable="Unable to reach metadata URL."
+    JWKsURIFormat="Unable to obtain jwks_uri from metadata URL."
+    TokenEndpoint="Unable to obtain token endpoint from metadata URL."
+    ProxyValues="Invalid proxy values provided."
+    UnableObtainToken="Unable to obtain OAuth token."
+    InvalidToken="Invalid input token."
+    TokenMissingKID="Token header missing key id."
+    UnableObtainKeys="Unable to obtain public keys from Azure."
+    PublicKey="Error while obtaining public certificate for key id."
+    InvalidJwt="Token validation error."
 
 
 class OAuth():
@@ -8,123 +24,178 @@ class OAuth():
     An OAuth class for Azure.
     """
 
-    def __init__(self, app_id, tennant_id='common'):
-        """
-        Initializes an object for this class.
+    def __init__(self, tennant_id='common', proxy=None):
+        """Initializes an object for this class.
 
         Args:
-            app_id (str): the application id of your app in Azure AD.
-            tennant_id (str, optional): The id of the tennant where your Azure 
-                applications live. Defaults to `common`.
+            tennant_id (str, optional): Azure tennant id. Defaults to 'common'
+            proxy (dict, optional): a proxy dictionary in the format below. 
+                                    Defaults to None.
+                                    E.g.: {"server":"proxyserver.com", 
+                                           "port": 8000}
 
-        Returns:
-            obj: The initialized class object.
-        
         Raises:
-            ValueError: if `tennant_id` is not GUID like.
-            KeyError: Unable to retrieve data from metadata URL.
+            SystemError: Unable to obtain metadata from URL.
+            KeyError: Unable to obtain value from metadata dictionary.
+            ValueError: Invalid values provided to class initializer.
         """
-        self.app_id = app_id
         self.tenant_id = tennant_id
         metadata_url = "https://login.microsoftonline.com/{tenant_id}"\
             "/v2.0/.well-known/openid-configuration".format(
                 tennant_id
             )
+            
         try:
             metadata = requests.get(metadata_url)
         except Exception as e
-            raise SystemError('Unable to call metadata url. Reason: {}'.format(
-                str(e)
-            ))
+            error = "{} Reason: {}".format(
+                Errors.MetadataUrlUnreachable.value,
+                str(e))
+            raise SystemError(error)
             
         self.jwks_uri = metadata_url.get('jwks_uri', None)
         if self.jwks_uri is None:
-            error = 'Unable to obtain jwks_uri from metadata URL.'
-            raise KeyError(error)
+            raise KeyError(Errors.JWKsURIFormat.value)
 
         self.token_endpoint = metadata.get('token_endpoint', None)
         if self.token_endpoint is None:
-            error = 'Unable to obtain token_endpoint from metadata URL.'
-            raise KeyError(error)
+            raise KeyError(Errors.TokenEndpoint.value)
+
+        if proxy is not None:
+            server = proxy.get("server", None)
+            port = proxy.get("port", None)
+            if server is None or port is None:
+                raise ValueError(Errors.ProxyValues.value)
+            if not isinstance(server, str) or not isinstance(port, int):
+                raise ValueError(Errors.ProxyValues.value)
+            self.proxy = {
+                "http": f"http://{server}:{port}",
+                "https": f"http://{server}:{port}",
+            }
+        else:
+            self.proxy=proxy
     
-    def get_token(self, client_id, client_secret, resource):
-        """
-        Returns JWT for a given AzureAD resource and an error message if that
+    def get_token(self, client_id, client_secret, scope):
+        """Returns JWT for a given AzureAD scope or an error message if that
         was not possible.
 
         Args:
             client_id (str): the id of your application (calling app id)
             client_secret (str): the client secret of your application
-                (calling app secret)
-        
-            resource (str): the Azure app id of the application you want to call
+            scope (str): scope you want to call in Azure. E.g.:
+                         api://342ba2-5342-af43/.default
 
         Returns:
-            (jwt, error) tuple (str, str): a JWT or an error. One of them will 
-                be None.
+            (str, str): a JWT and error strings. One of them will be None.
         """
-        pass
+        header = {
+            "content-type": "application/x-www-form-urlencoded"
+        }
+        body = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "scope": scope,
+            "grant_type": "client_credentials",
+        }
+        try:
+            response = requests.post(url=self.token_endpoint,
+                                     headers=header,
+                                     proxies=self.proxy,
+                                     data=body)
+            if not response.ok:
+                error = f"{Errors.UnableObtainToken.value} Detail: "\
+                    "{response.text}"
+                return None, error
+        except Exception as e:
+            return None, str(e)
+        
+        token = response.json().get("access_token", None)
+        if token is None:
+            return None, Errors.UnableObtainToken.value
+        
+        # It all worked if you got here!
+        return token, None
 
-    def get_claims(self, token):
-        """
-        Returns the claims for the input token, given it has been issued for the 
-        given resource and that it is valid.
+    def get_claims(self, token, app_id):
+        """Returns the claims for the input token, given it has been issued
+        for the given resource and that it is valid.
 
         Args:
-            token (str): a JWT another application sent to you. You to decode it
-                and verify if it is valid.
+            token (str): a Json Web Token (JWT)
+            app_id (str): the application id in Azure to which the JWT was 
+                          issued.
 
         Returns:
-            (claims, error) tuple (dict, str): the claims for the given token in
-                case it is valid for your application OR an error string in case
-                it is not.
+            dict, str: the claims for the given token in case it is valid for
+            your application OR an error string in case it is not.
         """
         if not isinstance(token, str):
-            return (None, 'Invalid input token.')
+            return (None, Errors.InvalidToken.value)
         
         # Parse token
         parts = token.split('.')
         if len(parts) != 3:
-            error = "Invalid JWT format. It needs to have a header, payload "\
-                "and signature."
-            return (None, error)
+            return (None, Errors.InvalidToken.value)
         (header, payload, signature) = parts
 
         # Retrieve key id from JWT header
         header = jwt.get_unverified_header(token)
         kid = header.get('kid', None)
         if kid is None:
-            error = 'Token header missing key id.'
-            return (None, error)
+            return (None, Errors.TokenMissingKID.value)
 
         # Obtain x509 public key used to generate token.
+        public_certificate = self._get_x509(kid)
+
+        # Verify signature
+        try:
+            claims = jwt.decode(
+                token,
+                public_certificate,
+                audience=[app_id, f"api://{app_id}/.default"],
+                algorithms=["RS256"])
+            return claims, None
+        except Exception as e:
+            error = f"{Errors.InvalidJwt} Details:{str(e)}"
+            return None, error
+
 
     def _get_x509(self, kid):
-        try:
-            keys = requests.get(self.jwks_uri)
-        except Exception as e
-            raise SystemError('Unable to call jwks uri. Reason: {}'.format(
-                str(e)
-            ))
-        for key_data in keys:
-            this_kid = key_data.get('kid')
-            if this_kid is None:
-                continue
-            if this_kid == kid:
-                x5c = key_data.get(x5c, None)
-                if x5c is None:
-                    error = "Unable to find a valid x5c certificate for this"\
-                        " key id."
-                    raise SystemError(error)
-                else:
-                    break
-        
-        if x5c is None: # no matching certificate has been found.
-            error = "Unable to find a valid x5c certificate for this key id."
-            raise SystemError(error)
+        """Obtains public certificate used by the IdP with the given key id
 
-        # Generate x509 certificate object
-        certificate_string = 'BEGIN PUBLIC KEY'.center(64, '-')+'\n'
-        certificate_string += '\n'.join(textwrap.wrap(x5c, 64))
-        certificate_string += '\n'+'END PUBLIC KEY'.center(64, '-')+'\n'
+        Args:
+            kid (str): key id
+
+        Returns:
+            x509certificate, str: the public certificate used with the
+                                  provided kid and the error string
+        """
+        try:
+            response = requests.get(url=self.jwks_uri, proxies=self.proxy)
+            if not response.ok:
+                return None, Errors.UnableObtainKeys.value
+            keys = response.json()
+            keys = keys.get("keys", None)
+            if keys is None:
+                return None, Errors.UnableObtainKeys.value
+        except Exception as e:
+            error = f"{Errors.UnableObtainKeys.value} Detail: {str(e)}"
+            return None, error
         
+        # Verify which key from Azure matches the key id in the input token
+        for key in keys:
+            kid_from_azure = key.get("kid", None)
+            if kid == kid_from_azure:
+                # Now get the public certificate that follows this key id
+                public_cert = key.get("x5c", None)
+                if public_cert is None:
+                    return None, Errors.PublicKey.value
+                public_cert = public_cert[0]
+                # Generate certificate format from certificate string
+                certificate = 'BEGIN PUBLIC KEY'.center(64, '-')+'\n'
+                certificate += '\n'.join(textwrap.wrap(public_cert, 64))
+                certificate += '\n'+'END PUBLIC KEY'.center(64, '-')+'\n'
+                certificate = load_pem_x509_certificate(certificate.encode(),
+                                                        default_backend)
+                return certificate.public_key(), None
+        return None, Errors.PublicKey.value

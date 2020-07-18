@@ -11,5 +11,5 @@ setup(
     long_description='Simple OAuth client_credential flow with Azure for Python.',
     url='https://github.com/agu3rra/oauth-pyzure',
     license='MIT',
-    keywords='api oauth authorization azure'
+    keywords='api oauth authorization azure client credentials flow'
 )
