@@ -1,1 +1,4 @@
-from .oauth import OAuth
+from .oauth import (
+    OAuth,
+    Errors
+)

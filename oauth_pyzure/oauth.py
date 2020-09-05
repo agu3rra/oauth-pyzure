@@ -2,21 +2,24 @@ import textwrap
 import jwt
 import requests
 import enum
-from cryptography;x509 import load_pem_x509_certificate
+from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
+
+TIMEOUT = 2  # timeout for all HTTP requests
 
 
 class Errors(enum.Enum):
-    MetadataUrlUnreachable="Unable to reach metadata URL."
-    JWKsURIFormat="Unable to obtain jwks_uri from metadata URL."
-    TokenEndpoint="Unable to obtain token endpoint from metadata URL."
-    ProxyValues="Invalid proxy values provided."
-    UnableObtainToken="Unable to obtain OAuth token."
-    InvalidToken="Invalid input token."
-    TokenMissingKID="Token header missing key id."
-    UnableObtainKeys="Unable to obtain public keys from Azure."
-    PublicKey="Error while obtaining public certificate for key id."
-    InvalidJwt="Token validation error."
+    MetadataUrlUnreachable = "Unable to reach metadata URL."
+    MetadataUrlHttpNok = "Response from metadata URL is not ok (200ish)."
+    JWKsURIFormat = "Unable to obtain jwks_uri from metadata URL."
+    TokenEndpoint = "Unable to obtain token endpoint from metadata URL."
+    ProxyValues = "Invalid proxy values provided."
+    UnableObtainToken = "Unable to obtain OAuth token."
+    InvalidToken = "Invalid input token."
+    TokenMissingKID = "Token header missing key id."
+    UnableObtainKeys = "Unable to obtain public keys from Azure."
+    PublicKey = "Error while obtaining public certificate for key id."
+    InvalidJwt = "Token validation error."
 
 
 class OAuth():
@@ -24,36 +27,52 @@ class OAuth():
     An OAuth class for Azure.
     """
 
-    def __init__(self, tennant_id='common', proxy=None):
+    def __init__(self, tenant_id='common', proxy=None):
         """Initializes an object for this class.
 
         Args:
-            tennant_id (str, optional): Azure tennant id. Defaults to 'common'
-            proxy (dict, optional): a proxy dictionary in the format below. 
-                                    Defaults to None.
-                                    E.g.: {"server":"proxyserver.com", 
-                                           "port": 8000}
+            tenant_id (str, optional): Azure tennant id. Defaults to 'common'
+            proxy (str, optional): a proxy connection if you don't have direct
+                                   internet access. Defaults to None.
+                                   E.g.: "http://myproxy:8000"
 
         Raises:
             SystemError: Unable to obtain metadata from URL.
             KeyError: Unable to obtain value from metadata dictionary.
             ValueError: Invalid values provided to class initializer.
         """
-        self.tenant_id = tennant_id
-        metadata_url = "https://login.microsoftonline.com/{tenant_id}"\
-            "/v2.0/.well-known/openid-configuration".format(
-                tennant_id
-            )
-            
+
+        if proxy is not None:
+            self.proxies = {
+                "http": proxy,
+                "https": proxy
+            }
+        else:
+            self.proxies = None
+
+        self.tenant_id = tenant_id
+        metadata_url = f"https://login.microsoftonline.com/{tenant_id}/v2.0"\
+            "/.well-known/openid-configuration"
+
         try:
-            metadata = requests.get(metadata_url)
-        except Exception as e
-            error = "{} Reason: {}".format(
+            metadata = requests.get(
+                metadata_url,
+                proxies=self.proxies,
+                timeout=TIMEOUT)
+            if metadata.ok:
+                metadata = metadata.json()
+            else:
+                resp = metadata.status_code
+                print(f"Status code from metadata URL: {resp}")
+                raise SystemError(Errors.MetadataUrlHttpNok.value)
+        except Exception as e:
+            err = "{} Reason: {}".format(
                 Errors.MetadataUrlUnreachable.value,
                 str(e))
-            raise SystemError(error)
-            
-        self.jwks_uri = metadata_url.get('jwks_uri', None)
+            print(err)
+            raise SystemError(Errors.MetadataUrlUnreachable.value)
+
+        self.jwks_uri = metadata.get('jwks_uri', None)
         if self.jwks_uri is None:
             raise KeyError(Errors.JWKsURIFormat.value)
 
@@ -61,20 +80,6 @@ class OAuth():
         if self.token_endpoint is None:
             raise KeyError(Errors.TokenEndpoint.value)
 
-        if proxy is not None:
-            server = proxy.get("server", None)
-            port = proxy.get("port", None)
-            if server is None or port is None:
-                raise ValueError(Errors.ProxyValues.value)
-            if not isinstance(server, str) or not isinstance(port, int):
-                raise ValueError(Errors.ProxyValues.value)
-            self.proxy = {
-                "http": f"http://{server}:{port}",
-                "https": f"http://{server}:{port}",
-            }
-        else:
-            self.proxy=proxy
-    
     def get_token(self, client_id, client_secret, scope):
         """Returns JWT for a given AzureAD scope or an error message if that
         was not possible.

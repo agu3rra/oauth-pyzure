@@ -5,10 +5,14 @@ verify_ssl = true
 
 [dev-packages]
 pytest = "*"
+pylint = "*"
+flake8 = "*"
+bandit = "*"
 
 [packages]
 pyjwt = "*"
 requests = "*"
+cryptography = "*"
 
 [requires]
 python_version = "3.8"
