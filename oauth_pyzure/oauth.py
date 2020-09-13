@@ -27,7 +27,7 @@ class OAuth():
     An OAuth class for Azure.
     """
 
-    def __init__(self, tenant_id='common', proxy=None):
+    def __init__(self, tenant_id='common', proxy=None, load_uris=True):
         """Initializes an object for this class.
 
         Args:
@@ -35,6 +35,8 @@ class OAuth():
             proxy (str, optional): a proxy connection if you don't have direct
                                    internet access. Defaults to None.
                                    E.g.: "http://myproxy:8000"
+            load_uris (bool, optional): load URIs for JWKS and token endpoint.
+                                        Defaults to True.
 
         Raises:
             SystemError: Unable to obtain metadata from URL.
@@ -51,12 +53,20 @@ class OAuth():
             self.proxies = None
 
         self.tenant_id = tenant_id
-        metadata_url = f"https://login.microsoftonline.com/{tenant_id}/v2.0"\
-            "/.well-known/openid-configuration"
+        self.metadata_url = f"https://login.microsoftonline.com/{tenant_id}"\
+            "/v2.0/.well-known/openid-configuration"
 
+        # Set later to facilitate unit testing
+        if load_uris:
+            self.load_uris()
+        else:
+            self.jwks_uri = None
+            self.token_endpoint = None
+
+    def load_uris(self):
         try:
             metadata = requests.get(
-                metadata_url,
+                self.metadata_url,
                 proxies=self.proxies,
                 timeout=TIMEOUT)
             if metadata.ok:
