@@ -11,8 +11,7 @@ A Python library for using and validating OAuth's [client credentials](https://w
 from oauth_pyzure import OAuth
 
 """
-Instantiate an object and give it an optional tenant id. 
-It uses Azure's default if none is provided.
+Instantiate an object and give it the Azure tenant id of your application.
 """
 oa = OAuth(tenant_id='some_tenant_id')
 
