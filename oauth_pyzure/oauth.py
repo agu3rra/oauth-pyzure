@@ -27,16 +27,21 @@ class OAuth():
     An OAuth class for Azure.
     """
 
-    def __init__(self, tenant_id='common', proxy=None, load_uris=True):
+    def __init__(self,
+                 tenant_id,
+                 proxy=None,
+                 load_uris=True):
         """Initializes an object for this class.
 
         Args:
-            tenant_id (str, optional): Azure tennant id. Defaults to 'common'
+            tenant_id (str): Azure tennant id.
             proxy (str, optional): a proxy connection if you don't have direct
                                    internet access. Defaults to None.
                                    E.g.: "http://myproxy:8000"
             load_uris (bool, optional): load URIs for JWKS and token endpoint.
                                         Defaults to True.
+            default_metadata (bool, optional): Used for unit testing.
+                                               Defaults to True.
 
         Raises:
             SystemError: Unable to obtain metadata from URL.
@@ -53,8 +58,9 @@ class OAuth():
             self.proxies = None
 
         self.tenant_id = tenant_id
-        self.metadata_url = f"https://login.microsoftonline.com/{tenant_id}"\
-            "/v2.0/.well-known/openid-configuration"
+        ms_base = "https://login.microsoftonline.com"
+        self.metadata_url = f"{ms_base}/{tenant_id}/v2.0/.well-known"\
+            "/openid-configuration"
 
         # Set later to facilitate unit testing
         if load_uris:
@@ -115,19 +121,19 @@ class OAuth():
         try:
             response = requests.post(url=self.token_endpoint,
                                      headers=header,
-                                     proxies=self.proxy,
+                                     proxies=self.proxies,
                                      data=body)
             if not response.ok:
-                error = f"{Errors.UnableObtainToken.value} Detail: "\
-                    "{response.text}"
+                error = f"{Errors.UnableObtainToken.value} " \
+                    f"Detail: {response.text}"
                 return None, error
         except Exception as e:
             return None, str(e)
-        
+
         token = response.json().get("access_token", None)
         if token is None:
             return None, Errors.UnableObtainToken.value
-        
+
         # It all worked if you got here!
         return token, None
 
@@ -146,7 +152,7 @@ class OAuth():
         """
         if not isinstance(token, str):
             return (None, Errors.InvalidToken.value)
-        
+
         # Parse token
         parts = token.split('.')
         if len(parts) != 3:
@@ -160,20 +166,21 @@ class OAuth():
             return (None, Errors.TokenMissingKID.value)
 
         # Obtain x509 public key used to generate token.
-        public_certificate = self._get_x509(kid)
+        public_certificate, err = self._get_x509(kid)
+        if err is not None:
+            return None, err
 
         # Verify signature
         try:
             claims = jwt.decode(
                 token,
                 public_certificate,
-                audience=[app_id, f"api://{app_id}/.default"],
+                audience=[app_id, f"api://{app_id}"],
                 algorithms=["RS256"])
             return claims, None
         except Exception as e:
-            error = f"{Errors.InvalidJwt} Details:{str(e)}"
+            error = f"{Errors.InvalidJwt.value} Details:{str(e)}"
             return None, error
-
 
     def _get_x509(self, kid):
         """Obtains public certificate used by the IdP with the given key id
@@ -186,7 +193,7 @@ class OAuth():
                                   provided kid and the error string
         """
         try:
-            response = requests.get(url=self.jwks_uri, proxies=self.proxy)
+            response = requests.get(url=self.jwks_uri, proxies=self.proxies)
             if not response.ok:
                 return None, Errors.UnableObtainKeys.value
             keys = response.json()
@@ -196,7 +203,7 @@ class OAuth():
         except Exception as e:
             error = f"{Errors.UnableObtainKeys.value} Detail: {str(e)}"
             return None, error
-        
+
         # Verify which key from Azure matches the key id in the input token
         for key in keys:
             kid_from_azure = key.get("kid", None)
@@ -206,11 +213,12 @@ class OAuth():
                 if public_cert is None:
                     return None, Errors.PublicKey.value
                 public_cert = public_cert[0]
+
                 # Generate certificate format from certificate string
-                certificate = 'BEGIN PUBLIC KEY'.center(64, '-')+'\n'
+                certificate = '-----BEGIN CERTIFICATE-----\n'
                 certificate += '\n'.join(textwrap.wrap(public_cert, 64))
-                certificate += '\n'+'END PUBLIC KEY'.center(64, '-')+'\n'
-                certificate = load_pem_x509_certificate(certificate.encode(),
-                                                        default_backend)
-                return certificate.public_key(), None
+                certificate += '\n'+'-----END CERTIFICATE-----\n'
+                cert_obj = load_pem_x509_certificate(certificate.encode(),
+                                                     default_backend())
+                return cert_obj.public_key(), None
         return None, Errors.PublicKey.value
