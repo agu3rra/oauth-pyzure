@@ -19,21 +19,25 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pytest pipenv bandit 
         pipenv install
+        echo "home/runner/work/oauth-pyzure" >> $PYTHONPATH
+
     - name: Code scanner - bandit
       run: |
         bandit -r ./oauth_pyzure
+
     - name: Test with pytest
       env:
-          PYTHONPATH: home/runner/work/oauth-pyzure
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
           PYTHON_PATH: ${{ secrets.PYTHONPATH }}
@@ -41,5 +45,6 @@ jobs:
           APP_ID_2: ${{ secrets.APP_ID_2 }}
           TENANT_ID: ${{ secrets.TENANT_ID }}
       run: |
+        echo $PYTHONPATH
         cd tests
         pytest -v
