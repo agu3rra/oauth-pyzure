@@ -27,10 +27,10 @@ jobs:
 
     - name: Install dependencies
       run: |
+        echo "::set-env name=PYTHONPATH::home/runner/work/oauth-pyzure"
         python -m pip install --upgrade pip
         pip install pytest pipenv bandit 
         pipenv install
-        echo "home/runner/work/oauth-pyzure" >> $PYTHONPATH
 
     - name: Code scanner - bandit
       run: |
