@@ -40,6 +40,5 @@ jobs:
           APP_ID_2: ${{ secrets.APP_ID_2 }}
           TENANT_ID: ${{ secrets.TENANT_ID }}
       run: |
-        pipenv shell
         cd tests
-        pytest -v
+        pipenv run pytest -v
