@@ -1,5 +1,14 @@
-# OAuth Pyzure (Work in progress...)
+# OAuth Pyzure
 A Python library for using and validating OAuth's [client credentials](https://www.oauth.com/oauth2-servers/access-tokens/client-credentials/) grant type (API to API) in Azure.
+
+<!-- TOC -->
+
+- [OAuth Pyzure](#oauth-pyzure)
+    - [Install](#install)
+    - [Usage](#usage)
+- [Setup your API on Azure](#setup-your-api-on-azure)
+
+<!-- /TOC -->
 
 ## Install
 > $ pip install oauth-pyzure
@@ -35,3 +44,8 @@ string and claims will be set to None.
 """
 (claims, error) = oa.get_claims(jwt, app_id)
 ```
+
+# Setup your API on Azure
+Do not forget that in order for the client-credentials flow to work, a target application needs to be setup in *Azure Active Directory > App Registration* and the appropriate scope needs to be set for it. Example below:
+
+![azure](docs/add-scope.png)
