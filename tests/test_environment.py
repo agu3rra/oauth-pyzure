@@ -7,8 +7,11 @@ class TestEnvironment():
         env_list = [
             'CLIENT_ID',
             'CLIENT_SECRET',
-            'RESOURCE',
-            'PYTHONPATH'
+            'SCOPE',
+            'PYTHONPATH',
+            'APP_ID',
+            'APP_ID_2',
+            'TENANT_ID',
         ]
         for item in env_list:
             assert os.environ.get(item, None) is not None

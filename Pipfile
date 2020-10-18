@@ -9,6 +9,7 @@ pylint = "*"
 flake8 = "*"
 bandit = "*"
 coverage = "*"
+pre-commit = "*"
 
 [packages]
 pyjwt = "*"
