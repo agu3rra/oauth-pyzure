@@ -43,7 +43,7 @@ class TestOAuth():
         token, err = self.oa.get_token(
             self.client_id,
             self.client_secret,
-            f"api://{app_id}/.default")
+            f"api://{self.app_id}/.default")
         assert token is not None
         assert err is None
         claims, err = self.oa.get_claims(token, self.app_id)
