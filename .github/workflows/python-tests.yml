@@ -40,10 +40,6 @@ jobs:
           APP_ID_2: ${{ secrets.APP_ID_2 }}
           TENANT_ID: ${{ secrets.TENANT_ID }}
       run: |
-        echo "Where am I?"
-        pwd
-        echo "PYTHONPATH is..."
-        echo $PYTHONPATH
-        export PYTHONPATH=/home/runner/work/oauth-pyzure
+        echo "::set-env name=PYTHONPATH::home/runner/work/oauth-pyzure"
         cd tests
         pytest -v
