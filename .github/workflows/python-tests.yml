@@ -33,6 +33,7 @@ jobs:
         bandit -r ./oauth_pyzure
     - name: Test with pytest
       env:
+          PYTHONPATH: home/runner/work/oauth-pyzure
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
           PYTHON_PATH: ${{ secrets.PYTHONPATH }}
@@ -40,6 +41,5 @@ jobs:
           APP_ID_2: ${{ secrets.APP_ID_2 }}
           TENANT_ID: ${{ secrets.TENANT_ID }}
       run: |
-        echo "::set-env name=PYTHONPATH::home/runner/work/oauth-pyzure"
         cd tests
         pytest -v
