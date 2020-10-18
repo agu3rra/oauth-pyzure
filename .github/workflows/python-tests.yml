@@ -22,7 +22,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Setup PYTHONPATH
       run: |
-        echo "PYTHONPATH=/home/runner/work/oauth-pyzure" >> $GITHUB_ENV
+        echo "PYTHONPATH=/__w/oauth-pyzure/oauth-pyzure" >> $GITHUB_ENV
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -40,5 +40,6 @@ jobs:
           APP_ID_2: ${{ secrets.APP_ID_2 }}
           TENANT_ID: ${{ secrets.TENANT_ID }}
       run: |
+        ls -lah /__w/oauth-pyzure/oauth-pyzure
         cd tests
         pytest -v
