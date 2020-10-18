@@ -16,7 +16,6 @@ class TestOAuth():
         self.oa = OAuth(tenant_id=tenant_id)
         self.client_id = os.environ.get("CLIENT_ID")
         self.client_secret = os.environ.get("CLIENT_SECRET")
-        self.scope = os.environ.get("SCOPE")
         self.app_id = os.environ.get("APP_ID")
         self.app_id_2 = os.environ.get("APP_ID_2")
 
@@ -44,7 +43,7 @@ class TestOAuth():
         token, err = self.oa.get_token(
             self.client_id,
             self.client_secret,
-            self.scope)
+            f"api://{app_id}/.default")
         assert token is not None
         assert err is None
         claims, err = self.oa.get_claims(token, self.app_id)

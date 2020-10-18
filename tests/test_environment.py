@@ -7,7 +7,6 @@ class TestEnvironment():
         env_list = [
             'CLIENT_ID',
             'CLIENT_SECRET',
-            'SCOPE',
             'PYTHONPATH',
             'APP_ID',
             'APP_ID_2',

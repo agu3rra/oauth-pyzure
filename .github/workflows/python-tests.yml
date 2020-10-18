@@ -32,6 +32,15 @@ jobs:
       run: |
         bandit -r ./oauth_pyzure
     - name: Test with pytest
+      env:
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          PYTHON_PATH: ${{ secrets.PYTHONPATH }}
+          APP_ID: ${{ secrets.APP_ID }}
+          APP_ID_2: ${{ secrets.APP_ID_2 }}
+          TENANT_ID: ${{ secrets.TENANT_ID }}
       run: |
+        echo "Home directory set to: $(HOME)"
+        echo $HOME
         cd tests
         pytest -v
