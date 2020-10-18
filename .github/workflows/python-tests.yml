@@ -27,7 +27,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pytest pipenv bandit 
-        pipenv install
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Code scanner - bandit
       run: |
         bandit -r ./oauth_pyzure
@@ -41,4 +41,4 @@ jobs:
           TENANT_ID: ${{ secrets.TENANT_ID }}
       run: |
         cd tests
-        pipenv run pytest -v
+        pytest -v
