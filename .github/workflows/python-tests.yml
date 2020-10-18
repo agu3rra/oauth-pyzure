@@ -25,9 +25,12 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Setup PYTHONPATH
+      run: |
+        echo "PYTHONPATH=/home/runner/work/oauth-pyzure" >> $GITHUB_ENV
+
     - name: Install dependencies
       run: |
-        echo "::set-env name=PYTHONPATH::/home/runner/work/oauth-pyzure"
         python -m pip install --upgrade pip
         pip install pytest pipenv bandit 
         pipenv install
@@ -47,5 +50,4 @@ jobs:
       run: |
         echo $PYTHONPATH
         cd tests
-        pwd
         pytest -v
