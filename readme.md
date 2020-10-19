@@ -14,7 +14,7 @@ A Python library for using and validating OAuth's [client credentials](https://w
 <!-- /TOC -->
 
 ## What does this package do?
-This package came from the necessity of performing authorization using the modern [OAuth protocol](https://www.oauth.com) on a Flask based application. At the time I implemented it in the form of a [Python decorator](https://realpython.com/primer-on-python-decorators/) which I added to all endpoints that required authorization. This package simply abstracts the implementation details when using [Microsoft Azure](https://azure.microsoft.com/) as the application identity provider. The objective is to offer one method to generate tokens to consume other Azure apps and another one to validate if a token received by your application is indeed valid (not expired, not tempered with, etc).
+The idea for this package came from the necessity of performing authorization using the modern [OAuth protocol](https://www.oauth.com) on a Flask based application. At the time I implemented it in the form of a [Python decorator](https://realpython.com/primer-on-python-decorators/) which I added to all endpoints that required authorization. This package simply abstracts the implementation details when using [Microsoft Azure](https://azure.microsoft.com/) as the application identity provider. The objective is to offer one method to generate tokens to consume other Azure apps and another one to validate if a token received by your application is indeed valid (not expired, not tempered with, etc).
 
 ## Install
 > $ pip install oauth-pyzure
