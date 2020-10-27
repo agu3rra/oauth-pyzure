@@ -4,7 +4,7 @@ setup(
     name='oauth-pyzure',
     version='0.1.3',
     packages=find_packages(),
-    install_requires=['requests==2.24.0','cryptography==3.1.1','pyjwt==1.7.1'],
+    install_requires=['requests==2.24.0','cryptography==3.2','pyjwt==1.7.1'],
     author='Andre Guerra',
     author_email='agu3rra@gmail.com',
     description='OAuth Pyzure: OAuth for Python with Azure',
