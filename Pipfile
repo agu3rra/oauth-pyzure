@@ -14,7 +14,7 @@ pre-commit = "*"
 [packages]
 pyjwt = "*"
 requests = "*"
-cryptography = "==3.2"
+cryptography = "==3.3.2"
 
 [requires]
 python_version = "3.8"
